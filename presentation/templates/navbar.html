@@ -1,0 +1,30 @@
+<!-- templates/navbar.html -->
+<nav class="navbar">
+  <div class="navbar-left">
+    <img src="{{ url_for('static', filename='icons/logo.png') }}" alt="logo" class="logo">
+    <span class="brand"><strong>SIT SPORTS BUDDY</strong></span>
+  </div>
+
+  <!-- Hamburger button for mobile -->
+  <div class="hamburger" onclick="toggleNavbar()">
+    <div></div>
+    <div></div>
+    <div></div>
+  </div>
+
+  <!-- Navigation links -->
+  <ul class="navbar-links" id="navLinks">
+    <li><a href="{{ url_for('bulletin.bulletin_page') }}">Bulletin</a></li>
+    <li><a href="{{ url_for('social_feed.feed') }}">Social Feed</a></li>
+    <li><a href="{{ url_for('profile_bp.fetch_profile') }}">Profile</a></li>
+    {% if current_user.is_authenticated %}
+      <li><a href="{{ url_for('login.logout') }}" class="logout-btn">Logout</a></li>
+    {% endif %}
+  </ul>
+</nav>
+
+<script>
+  function toggleNavbar() {
+    document.getElementById("navLinks").classList.toggle("show");
+  }
+</script>

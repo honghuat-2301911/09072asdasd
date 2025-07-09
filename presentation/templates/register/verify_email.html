@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verify Your Email</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/verify_email.css') }}">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="login-container">
+  <div class="login-card">
+    <div class="login-header">
+      <h1>Verify Your Email</h1>
+      <p>A verification link has been sent to your email address.</p>
+    </div>
+
+    <div class="login-content">
+      <p>Please check your inbox and click the link to verify your account.</p>
+      <p>If you didn’t receive the email, check your spam folder or <a href="{{ url_for('login.login') }}" class="signup-link">Click here to login</a>.</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

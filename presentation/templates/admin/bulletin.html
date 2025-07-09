@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin • Bulletin</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bulletin.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/navbar.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        window.sessionCreatedAt = "{{ session.get('created_at', '') }}";
+        window.sessionLastActivity = "{{ session.get('last_activity', '') }}";
+    </script>
+</head>
+<body>
+    {% include 'admin_navbar.html' %}
+    <div id="flashModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span class="close" onclick="closeFlashModal()">&times;</span>
+        {% with flash_messages = get_flashed_messages(with_categories=true) %}
+        {% if flash_messages %}
+            {% for category, message in flash_messages %}
+            <div class="flash-message {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+        {% endwith %}
+    </div>
+    </div>
+
+    <div class="bulletin-container">
+        {% if error %}
+            <div class="error-message" style="color: black; text-align: center; margin-top: 20px;">
+            {{ error }}
+            </div>
+        {% elif query %}
+            <div class="search-message" style="color: black; text-align: center; margin-top: 20px;">
+            Showing results for "{{ query }}"
+            </div>
+        {% endif %}
+        <div class="search-bar" style="text-align: center; margin-bottom: 20px;">
+            <form method="post" action="{{ url_for('admin.bulletin_page') }}">
+                {{ search_form.csrf_token }}
+                <input type="text" name="query" placeholder="Search activities...">
+                <button type="submit">Search</button>
+            </form>
+        </div>
+
+
+        <div class="grid-container">
+            {% for b in bulletin_list %}
+                <div class="card" onclick="openModal('{{ loop.index0 }}')">
+                    <h3>{{ b.activity_name }}</h3>
+                </div>
+
+                <!-- Hidden modal content -->
+                <div id="modal-data-{{ loop.index0 }}" data-activity-id="{{ b.id }}" style="display: none;">
+                    <h2>{{ b.activity_name }}</h2>
+                    <p><strong>Type:</strong> {{ b.activity_type }}</p>
+                    <p><strong>Location:</strong> {{ b.location }}</p>
+                    <p><strong>Date:</strong> {{ b.date }}</p>
+                    <p><strong>Required Skills:</strong> {{ b.skills_req }}</p>
+                    <p><strong>Max Participants:</strong> {{ b.max_pax }}</p>
+                </div>
+            {% endfor %}
+
+        </div>
+    </div>
+
+    <!-- Global Join Modal -->
+    <div id="bulletinModal" class="modal">
+        <div class="modal-content">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <div id="modalBody"></div>
+        <form id="joinForm" method="post" action="{{ url_for('admin.delete_activity') }}">
+            {{ delete_activity_form.csrf_token }}
+            <input
+            type="hidden"
+            name="activity_id"
+            id="activityIdInput"
+            value="{{ delete_activity_form.activity_id.data or '' }}"
+            >
+            <button type="submit" class="bulletin-btn" style="margin-top: 20px;">Delete</button>
+            {% if delete_activity_form.activity_id.errors %}
+            <div class="error-message">{{ delete_activity_form.activity_id.errors[0] }}</div>
+            {% endif %}
+        </form>
+        </div>
+    </div>
+
+    <div id="hostModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeHostModal()">&times;</span>
+        <h2>Host New Activity</h2>
+        <form method="POST" action="{{ url_for('bulletin.host_activity') }}">
+            <input type="text" name="activity_name" placeholder="Activity Name" required><br><br>
+            
+            <select name="activity_type" required>
+                <option value="" disabled selected>Select Activity Type</option>
+                <option value="Sports">Sports</option>
+                <option value="Non Sports">Non Sports</option>
+            </select><br><br>
+
+            <input type="text" name="skills_req" placeholder="Required Skills" required><br><br>
+            <input type="datetime-local" name="date" required><br><br>
+            <input type="text" name="location" placeholder="Location" required><br><br>
+            <input type="number" name="max_pax" min="1" value="1" required><br><br>
+            <button type="submit" class="bulletin-btn">Host</button>
+        </form>
+    </div>
+    </div>
+
+
+    <script>
+        function openModal(index) {
+            const data = document.getElementById(`modal-data-${index}`);
+            const modal = document.getElementById("bulletinModal");
+            const modalBody = document.getElementById("modalBody");
+            const activityIdInput = document.getElementById("activityIdInput");
+
+            modalBody.innerHTML = data.innerHTML;
+            activityIdInput.value = data.dataset.activityId;  // pulled from data attribute
+            modal.style.display = "block";
+        }
+
+
+        function closeModal() {
+            document.getElementById("bulletinModal").style.display = "none";
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById("bulletinModal");
+            if (event.target === modal) {
+                closeModal();
+            }
+        };
+
+        function openHostModal() {
+            document.getElementById("hostModal").style.display = "block";
+        }
+
+        function closeHostModal() {
+            document.getElementById("hostModal").style.display = "none";
+        }
+        window.onload = function () {
+        if (document.querySelector('#flashModal .flash-message')) {
+            document.getElementById('flashModal').style.display = 'block';
+        }
+        };
+        function closeFlashModal() {
+        document.getElementById('flashModal').style.display = 'none';
+        }
+
+    </script>
+</body>
+</html> 

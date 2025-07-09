@@ -1,0 +1,80 @@
+name: Run Unit Tests
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  unit-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set environment variables
+        run: |
+          echo "DB_HOST=${{ secrets.DB_HOST }}" > .env
+          echo "DB_USER=${{ secrets.DB_USER }}" >> .env
+          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+          echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
+          echo "SQL_ROOT_PASSWORD=${{ secrets.SQL_ROOT_PASSWORD }}" >> .env
+          echo "FLASK_SECRET_KEY=${{ secrets.FLASK_SECRET_KEY }}" >> .env
+          echo "CERTBOT_EMAIL=${{ secrets.CERTBOT_EMAIL }}" >> .env
+
+      - name: Generate dummy SSL certs
+        run: |
+          mkdir -p ./certbot/conf/live/buddiesfinders.hopto.org
+
+          openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
+            -keyout ./certbot/conf/live/buddiesfinders.hopto.org/privkey.pem \
+            -out ./certbot/conf/live/buddiesfinders.hopto.org/fullchain.pem \
+            -subj "/CN=localhost"
+
+      - name: Add a seeded user to the init.sql file
+        run: |
+          echo "-- Seed a pre-verified user" >> init.sql
+          echo "INSERT INTO mydb.user (name, password, email, role, email_verified)" >> init.sql
+          echo "VALUES ('eden', '\$2b\$12\$LY/PNCs3ZwJgifKB9rrBiuSao3EaeBq4uTX/1bq4y3ZxidiC0tEsO', '2301875@sit.singaporetech.edu.sg', 'user', 1);" >> init.sql
+      
+      - name: Build and start services (without certbot)
+        run: docker compose -f docker-compose.yml -f docker-compose.override.yml up --build -d
+
+      - name: Install Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget gnupg unzip
+          wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+          sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+
+      - name: Install required packages for tests
+        run: |
+          pip install selenium>=4.10.0
+          pip install webdriver-manager>=4.0.0
+
+      - name: Run Unit Tests for Register
+        run: | 
+          python tests/register_test.py
+
+      - name: Run Unit Tests for Login
+        run: |
+          python tests/login_test.py
+
+      - name: Run Unit Tests for Create Activity
+        run: |
+          python tests/create_activity_test.py
+
+      - name: Upload test artifacts (screenshots, HTML)
+        if: failure()  # Only upload if the job fails
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-artifacts
+          path: artifacts/
+

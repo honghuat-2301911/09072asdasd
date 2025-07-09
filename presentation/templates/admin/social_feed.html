@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin • Social Feed</title>
+  <script>
+    window.sessionCreatedAt = "{{ session.get('created_at', '') }}";
+    window.sessionLastActivity = "{{ session.get('last_activity', '') }}";
+  </script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/navbar.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/social_feed.css') }}" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+</head>
+<body>
+  {% include 'admin_navbar.html' %}
+    <div id="flashModal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <span class="close" onclick="closeFlashModal()">&times;</span>
+      {% with flash_messages = get_flashed_messages(with_categories=true) %}
+        {% if flash_messages %}
+          {% for category, message in flash_messages %}
+            <div class="flash-message {{ category }}">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+    </div>
+  </div>
+
+  <div class="layout-3col" style="gap: 0;">
+    <!-- Center: Admin Feed -->
+    <div class="feed-main-col">
+      <h2 style="margin-bottom: 24px;">All Posts</h2>
+
+      <!-- Admin Feed List -->
+      {% for post in posts %}
+      <div class="social-card admin-post-card" style="position: relative; margin-bottom: 24px;">
+        <!-- Post Header -->
+        <div class="post-header" style="display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center;">
+            <img src="{{ post.profile_picture or url_for('static', filename='icons/user.png') }}"
+                 class="avatar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;background:#fff;"
+                 alt="Profile Picture">
+            <div class="user-info" style="margin-left: 12px;">
+              <span class="username" style="font-weight: 600;">{{ post.user }}</span><br/>
+              <small style="color: #666;">{{ post.created_at }}</small>
+            </div>
+          </div>
+
+          <!-- Delete Button: Flask-WTF Form -->
+          <form method="POST" action="{{ url_for('admin.delete_post') }}" onsubmit="return confirm('Delete this post?');">
+            {{ delete_forms[post.id].hidden_tag() }}
+            <button type="submit" class="delete-btn"
+                    style="background: #e53935; color: #fff; border: none; border-radius: 4px; padding: 6px 12px; cursor: pointer;">
+              Delete
+            </button>
+          </form>
+        </div>
+
+        <!-- Post Content -->
+        <div class="post-content" style="margin: 12px 0; white-space: pre-wrap;">
+          {{ post.content }}
+        </div>
+
+        <!-- Optional Thumbnail -->
+        {% if post.image_url %}
+        <div class="post-image" style="margin-bottom: 12px;">
+          <img src="{{ post.image_url }}" alt="Post image" style="max-width:100%; border-radius:8px;">
+        </div>
+        {% endif %}
+
+        <!-- Stats: Comments / Likes -->
+        <div class="post-stats" style="display: flex; gap: 24px; color: #555;">
+          <div>
+            <strong>{{ post.comments|length }}</strong> comments
+          </div>
+          <div>
+            <strong>{{ post.likes }}</strong> likes
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <p>No posts to display.</p>
+      {% endfor %}
+    </div>
+  </div>
+  <script>
+    window.onload = function () {
+      if (document.querySelector('#flashModal .flash-message')) {
+        document.getElementById('flashModal').style.display = 'block';
+      }
+    };
+    function closeFlashModal() {
+      document.getElementById('flashModal').style.display = 'none';
+    }
+  </script>
+</body>
+</html>

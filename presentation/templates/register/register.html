@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/register.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="register-container">
+        <div class="register-card">
+            <div class="register-header">
+                <h1 style="color:#b91c1c;">Create Your Account</h1>
+                <p style="color:#b91c1c;">Join us to stay active!</p>
+            </div>
+            
+            {% if result %}
+            <div>{{ result }}</div>
+            {% endif %}
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+      <form method="POST" action="{{ url_for('register.register') }}" class="register-form">
+        {{ form.hidden_tag() }}
+
+        <div class="form-group">
+          {{ form.name.label }}
+          {{ form.name(class="form-control", placeholder="Enter your name") }}
+          {% if form.name.errors %}
+            <ul class="errors">
+              {% for err in form.name.errors %}
+                <li>{{ err }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </div>
+
+        <div class="form-group">
+          {{ form.email.label }}
+          {{ form.email(class="form-control", placeholder="Enter your email") }}
+          {% for err in form.email.errors %}
+            <div class="error">{{ err }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="form-group">
+          {{ form.password.label }}
+          {{ form.password(class="form-control", placeholder="Enter your password") }}
+          {% for err in form.password.errors %}
+            <div class="error">{{ err }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="form-group">
+          {{ form.confirm_password.label }}
+          {{ form.confirm_password(class="form-control", placeholder="Confirm your password") }}
+          {% for err in form.confirm_password.errors %}
+            <div class="error">{{ err }}</div>
+          {% endfor %}
+        </div>
+
+        {{ form.submit(class="register-btn") }}
+      </form>
+            <div class="register-footer">
+                <p>Already have an account? <a href="{{ url_for('login.login') }}" class="signup-link">Sign in</a></p>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

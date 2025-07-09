@@ -1,0 +1,28 @@
+name: Pylint check
+
+permissions:
+  contents: read
+  
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  pylint-typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pylint
+
+      # Use Pylint to lint Python files as flask mainly uses python
+      - name: Lint with pylint
+        run: find . -type f -name "*.py" ! -path "./venv/*" -print0 | xargs -0 pylint --disable=C0114,C0115,C0116
+
+

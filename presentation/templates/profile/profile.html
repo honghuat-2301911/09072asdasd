@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Profile</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/navbar.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        window.sessionCreatedAt = "{{ session.get('created_at', '') }}";
+        window.sessionLastActivity = "{{ session.get('last_activity', '') }}";
+    </script>
+</head>
+<body>
+    {% include 'navbar.html' %}
+    <div id="flashModal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <span class="close" onclick="closeFlashModal()">&times;</span>
+        {% with flash_messages = get_flashed_messages(with_categories=true) %}
+          {% if flash_messages %}
+            {% for category, message in flash_messages %}
+              <div class="flash-message {{ category }}">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+      </div>
+    </div>
+    <div class="profile-banner">
+        <div class="profile-header">
+            <img id="profilePicView" src="{% if not user.profile_picture or user.profile_picture == 'None' %}{{ url_for('static', filename='icons/user.png') }}{% else %}{{ user.profile_picture }}{% endif %}" class="profile-avatar" alt="Profile Picture" style="cursor:pointer;">
+            <div class="profile-header-info">
+                <h2>{{ user.name}}</h2>
+                <p>{{ user.email}}</p>
+            </div>
+        </div>
+    </div>
+    <nav class="profile-nav">
+        <a href="#" class="active" id="profileTab">Profile</a>
+        <a href="#" id="feedTab">Social Feed</a>
+        <a href="#" id="activitiesTab">Sports Activities</a>
+    </nav>
+    <div id="profileSection" class="profile-section">
+        <div class="profile-feed">
+            <h3>User Profile</h3>
+            <div class="profile-feed-item">
+                <img src="{% if not user.profile_picture or user.profile_picture == 'None' %}{{ url_for('static', filename='icons/user.png') }}{% else %}{{ user.profile_picture }}{% endif %}" class="feed-avatar" alt="Profile Picture">
+                <div class="feed-content">
+                    <p><strong>Name:</strong> {{ user.name}}</p>
+                    <p><strong>Email:</strong> {{ user.email}}</p>
+
+                </div>
+                <button id="editProfileBtn" class="icon-btn" title="Edit Profile">
+                    <img src="{{ url_for('static', filename='icons/edit.png') }}" alt="Edit" class="edit-icon">
+                </button>
+            </div>
+            <!-- 2FA Status Section -->
+            <div class="profile-feed-item">
+                <div class="feed-content">
+                    <p>
+                        <strong>2FA Status:</strong>
+                        {% if user.otp_enabled %}
+                            <span style="color: green; font-weight: bold;">Enabled</span>
+                        {% else %}
+                            <span style="color: red; font-weight: bold;">Disabled</span>
+                        {% endif %}
+                    </p>
+                        {% if user.otp_enabled %}
+                            <form method="POST" action="{{ url_for('profile_bp.disable_otp') }}">
+                                {{ disable_otp_form.csrf_token }}
+                                <button type="submit" class="btn btn-danger">Disable 2FA</button>
+                            </form>
+                        {% else %}
+                            <button id="enable2faBtn" class="btn btn-primary">Enable 2FA</button>
+                        {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="feedSection" class="profile-section" style="display:none;">
+        <div class="profile-feed">
+            <h3>My Social Feed</h3>
+            {% if posts and posts|length > 0 %}
+                {% for post in posts %}
+                    <form id="deletePostForm-{{ post.id }}" action="{{ url_for('profile_bp.delete_post', post_id=post.id) }}" method="POST" style="display:none;">
+                        {{ delete_form.csrf_token }}
+                    </form>
+                    <div class="profile-feed-item" data-post-id="{{ post.id }}">
+                        <img src="{% if not user.profile_picture or user.profile_picture == 'None' %}{{ url_for('static', filename='icons/user.png') }}{% else %}{{ user.profile_picture }}{% endif %}" class="feed-avatar" alt="Avatar">
+                        <div class="feed-content">
+                            <p class="post-content">{{ post.content }}</p>
+                            {% if post.image_url and post.image_url != 'None' %}
+                                <img src="{{ post.image_url }}" alt="Post Image" class="post-image" style="max-width: 100%; margin-top: 8px; border-radius: 8px;" />
+                            {% endif %}
+                            {# No created_at here #}
+                        </div>
+                        <button class="icon-btn edit-post-btn" title="Edit Post" data-post-id="{{ post.id }}" data-post-content="{{ post.content|e }}">
+                            <img src="{{ url_for('static', filename='icons/edit.png') }}" alt="Edit" class="edit-icon">
+                        </button>
+                        <button class="icon-btn delete-post-btn" title="Delete Post" data-post-id="{{ post.id }}">
+                            <img src="{{ url_for('static', filename='icons/delete.png') }}" alt="Delete" class="edit-icon">
+                        </button>
+                        {# Comments Section #}
+                        {% if post.comments %}
+                        <div class="comments-list">
+                            {% for comment in post.comments %}
+                            <div class="comment">
+                                <img src="{% if not comment.profile_picture or comment.profile_picture == 'None' %}{{ url_for('static', filename='icons/user.png') }}{% else %}{{ comment.profile_picture }}{% endif %}" class="comment-avatar" alt="Profile Picture">
+                                <div class="comment-content">
+                                    <span class="comment-username">{{ comment.user }}</span>
+                                    <div class="comment-text">{{ comment.content }}</div>
+                                    {# No comment.created_at here #}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p style="text-align:center;">You have not posted anything yet.</p>
+            {% endif %}
+        </div>
+    </div>
+    <div id="activitiesSection" class="profile-section" style="display:none;">
+        <div class="profile-feed">
+            <h3>Sports Activities</h3>
+            <div class="activity-group">
+                <h4>Hosted Activities ({{ hosted_activities|length }})</h4><br>
+                {% if hosted_activities|length > 0 %}
+                    {% for activity in hosted_activities %}
+                        <div class="profile-feed-item" data-activity-id="{{ activity.id }}-{{ activity.date }}">
+                            <img src="{% if not user.profile_picture or user.profile_picture == 'None' %}{{ url_for('static', filename='icons/user.png') }}{% else %}{{ user.profile_picture }}{% endif %}" class="feed-avatar" alt="Profile Picture">
+                            <div class="feed-content">
+                                <p><strong>{{ activity.activity_name }}</strong></p>
+                                <p>Type: {{ activity.activity_type }}</p>
+                                <p>Skills Required: {{ activity.skills_req }}</p>
+                                <p>Date: {{ activity.date }}</p>
+                                <p>Location: {{ activity.location }}</p>
+                                <p>Max Participants: {{ activity.max_pax }}</p>
+                            </div>
+                            <button class="icon-btn edit-activity-btn" title="Edit Activity" data-activity-id="{{ activity.id }}">
+                                <img src="{{ url_for('static', filename='icons/edit.png') }}" alt="Edit" class="edit-icon">
+                            </button>
+                            <button type="button" class="icon-btn view-list-btn" title="View Joined Users" data-activity-id="{{ activity.id }}">
+                                <img src="{{ url_for('static', filename='icons/view.png') }}" alt="View" class="edit-icon">
+                            </button>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="profile-feed-item">
+                        <div class="feed-content">
+                            <p>You have not hosted any activities yet.</p>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="activity-group">
+                <h4>Joined Activities ({{ joined_only_activities|length }})</h4><br>
+                {% if joined_only_activities|length > 0 %}
+                    {% for activity in joined_only_activities %}
+                        <div class="profile-feed-item" data-activity-id="{{ activity.id }}-{{ activity.date }}">
+                            <img src="{% if not user.profile_picture or user.profile_picture == 'None' %}{{ url_for('static', filename='icons/user.png') }}{% else %}{{ user.profile_picture }}{% endif %}" class="feed-avatar" alt="Profile Picture">
+                            <div class="feed-content">
+                                <p><strong>{{ activity.activity_name }}</strong></p>
+                                <p>Type: {{ activity.activity_type }}</p>
+                                <p>Skills Required: {{ activity.skills_req }}</p>
+                                <p>Date: {{ activity.date }}</p>
+                                <p>Location: {{ activity.location }}</p>
+                                <p>Max Participants: {{ activity.max_pax }}</p>
+                            </div>
+                            <!-- Leave Activity Button triggers modal -->
+                            <button type="button" class="icon-btn leave-activity-btn" data-activity-id="{{ activity.id }}" title="Leave Activity">
+                                <img src="{{ url_for('static', filename='icons/delete.png') }}" alt="Leave" class="edit-icon">
+                            </button>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="profile-feed-item">
+                        <div class="feed-content">
+                            <p>You have not joined any activities yet.</p>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <!-- Modal for editing profile -->
+    <div id="editProfileModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" id="closeModalBtn">&times;</span>
+            <h3>Edit Profile</h3>
+            <form class="profile-edit-form" id="profileEditForm" method="POST" action="{{ url_for('profile_bp.fetch_profile') }}" enctype="multipart/form-data">
+                {{ profile_form.hidden_tag() }}
+                <div>
+                    {{ profile_form.name.label }}<br>
+                    {{ profile_form.name(size=32) }}
+                    {% for error in profile_form.name.errors %}<span style="color:red">{{ error }}</span>{% endfor %}
+                </div>
+                <div>
+                    {{ profile_form.email.label }}<br>
+                    {{ profile_form.email(size=32, readonly=True) }}
+                </div>
+                <div>
+                    {{ profile_form.password.label }}<br>
+                    {{ profile_form.password(size=32) }}
+                    {% for error in profile_form.password.errors %}<span style="color:red">{{ error }}</span>{% endfor %}
+                </div>
+                <div>
+                    {{ profile_form.profile_picture.label }}<br>
+                    {{ profile_form.profile_picture() }}
+                </div>
+                <div>
+                    {{ profile_form.remove_profile_picture() }} {{ profile_form.remove_profile_picture.label }}
+                </div>
+                <button type="submit">{{ profile_form.submit.label }}</button>
+            </form>
+        </div>
+    </div>
+    <!-- Modal for enabling 2FA -->
+    <div id="enable2faModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" id="close2faModalBtn">&times;</span>
+            <h3>Enable Two-Factor Authentication</h3>
+            <div id="qr2faSection">
+                <p>Scan this QR code with Google Authenticator:</p>
+                <img id="qr2faImg" src="" alt="2FA QR Code" style="margin: 16px auto; display: block; max-width: 200px;">
+                <p id="otpSecretText" style="font-size: small; color: #888;"></p>
+                <input type="text" id="otpCodeInput" placeholder="Enter code from app" />
+                <button id="verify2faBtn" class="btn btn-success">Verify</button>
+                <p id="otpErrorMsg" style="color: red; display: none;"></p>
+            </div>
+            <div id="success2faSection" style="display:none; text-align:center;">
+                <p style="color:green; font-weight:bold;">✅ 2FA Enabled Successfully!</p>
+                <p>You can now log in with your authenticator app</p>
+            </div>
+            <button id="done2faBtn" style="display:none; margin-top: 16px;">Done</button>
+        </div>
+    </div>
+
+    <!-- Edit Post Modal -->
+    <div id="editPostModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" id="closeEditPostModalBtn">&times;</span>
+            <h3>Edit Post</h3>
+            <form id="editPostForm" class="profile-edit-form" method="POST" enctype="multipart/form-data">
+                {{ post_form.hidden_tag() }}
+                {{ post_form.post_id(id='editPostId') }}
+                <div>
+                    <label for="editPostContent">Content:</label>
+                    {{ post_form.content(id='editPostContent', rows=4, style="width:100%;") }}
+                    {% for error in post_form.content.errors %}
+                        <span style="color:red">{{ error }}</span>
+                    {% endfor %}
+                </div>
+                <div id="editPostImageSection" style="display:none; margin-top:10px;">
+                    <div id="currentPostImageContainer"></div>
+                    {{ post_form.remove_image(id='removeImageCheckbox') }} {{ post_form.remove_image.label }}
+                </div>
+                <button type="submit">{{ post_form.submit.label }}</button>
+            </form>
+        </div>
+    </div>
+    <!-- Delete Post Modal -->
+    <div id="deletePostModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" id="closeDeletePostModalBtn">&times;</span>
+            <h3>Delete Post</h3>
+            <p>Are you sure you want to delete this post?</p>
+            <div class="delete-modal-actions">
+                <button id="confirmDeletePostBtn" class="delete-confirm-btn">Yes, Delete</button>
+                <button id="cancelDeletePostBtn" class="cancel-confirm-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+    <!-- Edit Activity Modal -->
+    <div id="editActivityModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" id="closeEditActivityModalBtn">&times;</span>
+            <h3>Edit Activity</h3>
+            <form id="editActivityForm" class="profile-edit-form" method="POST">
+                {{ activity_form.hidden_tag() }}
+                {{ activity_form.activity_id(id="editActivityId") }}
+                <div>
+                    {{ activity_form.activity_name(id="editActivityName") }}
+                </div>
+                <div>
+                    {{ activity_form.activity_type(id="editActivityType") }}
+                </div>
+                <div>
+                    {{ activity_form.skills_req(id="editSkillsReq") }}
+                </div>
+                <div>
+                    {{ activity_form.date(id="editActivityDate") }}
+                </div>
+                <div>
+                    {{ activity_form.location(id="editActivityLocation") }}
+                </div>
+                <div>
+                    {{ activity_form.max_pax(id="editActivityMaxPax") }}
+                </div>
+                <button type="submit">{{ activity_form.submit.label }}</button>
+            </form>
+
+        </div>
+    </div>
+    <!-- Hidden Leave Activity Form -->
+    <form id="leaveActivityForm" method="POST" style="display:none;">
+        {{ delete_form.csrf_token }}
+    </form>
+    <!-- Leave Activity Modal -->
+    <div id="leaveActivityModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" id="closeLeaveActivityModalBtn">&times;</span>
+            <h3>Leave Activity</h3>
+            <p>Are you sure you want to leave this activity?</p>
+            <div class="delete-modal-actions">
+                <button id="confirmLeaveActivityBtn" class="delete-confirm-btn" type="button">Yes, Leave</button>
+                <button id="cancelLeaveActivityBtn" class="cancel-confirm-btn" type="button">Cancel</button>
+            </div>
+        </div>
+    </div>
+    <!-- Profile Picture Modal -->
+    <div id="profilePicModal" class="modal" style="display:none;position:fixed;z-index:9999;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.8);align-items:center;justify-content:center;">
+        <span class="close-modal" onclick="closeProfilePicModal()" style="position:absolute;top:32px;right:48px;font-size:2.5em;color:#fff;cursor:pointer;z-index:10001;">&times;</span>
+        <img id="profilePicModalImg" src="" alt="Profile Picture" style="max-width:90vw;max-height:80vh;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.4);background:#fff;">
+    </div>
+        <!-- Modal for viewing joined users -->
+    <div id="viewListModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" id="closeViewListModalBtn">&times;</span>
+            <h3>Users Joined</h3>
+            <ul id="joinedUsersList">
+                <!-- User list will be dynamically inserted here -->
+            </ul>
+        </div>
+    </div>
+    <script>
+        function getCSRFToken() {
+            return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        }
+
+        // Tab switching logic
+        document.getElementById('profileTab').onclick = function() {
+            showSection('profileSection', this);
+        };
+        document.getElementById('feedTab').onclick = function() {
+            showSection('feedSection', this);
+        };
+        document.getElementById('activitiesTab').onclick = function() {
+            showSection('activitiesSection', this);
+        };
+        function showSection(sectionId, tab) {
+            document.querySelectorAll('.profile-section').forEach(s => s.style.display = 'none');
+            document.getElementById(sectionId).style.display = 'block';
+            document.querySelectorAll('.profile-nav a').forEach(a => a.classList.remove('active'));
+            tab.classList.add('active');
+        }
+        // Modal logic
+        const editBtn = document.getElementById('editProfileBtn');
+        const modal = document.getElementById('editProfileModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        if (editBtn) {
+            editBtn.onclick = function() {
+                modal.style.display = 'block';
+            };
+        }
+        if (closeModalBtn) {
+            closeModalBtn.onclick = function() {
+                modal.style.display = 'none';
+            };
+        }
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // Edit Post Modal logic
+        const editPostModal = document.getElementById('editPostModal');
+        const closeEditPostModalBtn = document.getElementById('closeEditPostModalBtn');
+        let currentEditPostId = null;
+        document.querySelectorAll('.edit-post-btn').forEach(btn => {
+            btn.onclick = function() {
+                currentEditPostId = this.getAttribute('data-post-id');
+                const postDiv = document.querySelector('.profile-feed-item[data-post-id="' + currentEditPostId + '"]');
+                document.getElementById('editPostId').value = currentEditPostId;
+                document.getElementById('editPostContent').value = this.getAttribute('data-post-content');
+                // Show remove image checkbox and current image if post has image
+                const postImage = postDiv.querySelector('.post-image');
+                const imageSection = document.getElementById('editPostImageSection');
+                const currentImageContainer = document.getElementById('currentPostImageContainer');
+                if (postImage) {
+                    imageSection.style.display = 'block';
+                    document.getElementById('removeImageCheckbox').checked = false;
+                    // Show the current image in the modal
+                    currentImageContainer.innerHTML = `<img src="${postImage.src}" alt="Current Image" style="max-width: 200px; display:block; margin-bottom:8px;">`;
+                } else {
+                    imageSection.style.display = 'none';
+                    currentImageContainer.innerHTML = '';
+                }
+                document.getElementById('editPostForm').action = '/profile/edit_post/' + currentEditPostId;
+                editPostModal.style.display = 'block';
+            };
+        });
+        if (closeEditPostModalBtn) {
+            closeEditPostModalBtn.onclick = function() {
+                editPostModal.style.display = 'none';
+            };
+        }
+        window.onclick = function(event) {
+            if (event.target == editPostModal) {
+                editPostModal.style.display = 'none';
+            }
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // 2FA modal logic
+        const enable2faBtn = document.getElementById('enable2faBtn');
+        const enable2faModal = document.getElementById('enable2faModal');
+        const close2faModalBtn = document.getElementById('close2faModalBtn');
+        const qr2faImg = document.getElementById('qr2faImg');
+        const otpSecretText = document.getElementById('otpSecretText');
+        const otpCodeInput = document.getElementById('otpCodeInput');
+        const verify2faBtn = document.getElementById('verify2faBtn');
+        const otpErrorMsg = document.getElementById('otpErrorMsg');
+        const qr2faSection = document.getElementById('qr2faSection');
+        const success2faSection = document.getElementById('success2faSection');
+        const done2faBtn = document.getElementById('done2faBtn');
+
+        if (enable2faBtn) {
+            enable2faBtn.onclick = function() {
+                enable2faModal.style.display = 'block';
+                qr2faSection.style.display = 'block';
+                success2faSection.style.display = 'none';
+                done2faBtn.style.display = 'none';
+                otpErrorMsg.style.display = 'none';
+                fetch('/profile/generate_otp', {method: 'POST', headers: {'X-CSRF-Token': getCSRFToken()}})
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            qr2faImg.src = data.qr;
+                            otpSecretText.textContent = "Secret: " + data.secret;
+                        } else {
+                            otpSecretText.textContent = data.message || "Failed to generate OTP";
+                            qr2faImg.src = "";
+                        }
+                    });
+            };
+        }
+
+        if (close2faModalBtn) {
+            close2faModalBtn.onclick = function() {
+                enable2faModal.style.display = 'none';
+                window.location.reload();
+            };
+        }
+
+        verify2faBtn.onclick = function() {
+            const otpCode = otpCodeInput.value.trim();
+            if (!otpCode) {
+                otpErrorMsg.textContent = "Please enter the code from your app.";
+                otpErrorMsg.style.display = 'block';
+                return;
+            }
+            fetch('/profile/verify_otp', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRF-Token': getCSRFToken()},
+                body: JSON.stringify({otp_code: otpCode})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    qr2faSection.style.display = 'none';
+                    success2faSection.style.display = 'block';
+                    done2faBtn.style.display = 'inline-block';
+                } else {
+                    otpErrorMsg.textContent = data.message || "Verification failed.";
+                    otpErrorMsg.style.display = 'block';
+                }
+            });
+        };
+
+        done2faBtn.onclick = function() {
+            enable2faModal.style.display = 'none';
+            window.location.reload();
+        }; 
+
+        // Done button handler
+        document.getElementById('done2faBtn').onclick = function() {
+            enable2faModal.style.display = 'none';
+            window.location.reload();
+        };
+
+        // Delete Post Modal logic
+        const deletePostModal = document.getElementById('deletePostModal');
+        const closeDeletePostModalBtn = document.getElementById('closeDeletePostModalBtn');
+        let currentDeletePostId = null;
+        document.querySelectorAll('.delete-post-btn').forEach(btn => {
+            btn.onclick = function() {
+                const postId = this.getAttribute('data-post-id');
+                if (confirm('Are you sure you want to delete this post?')) {
+                    document.getElementById('deletePostForm-' + postId).submit();
+                }
+            };
+        });
+        if (closeDeletePostModalBtn) {
+            closeDeletePostModalBtn.onclick = function() {
+                deletePostModal.style.display = 'none';
+            };
+        }
+        document.getElementById('cancelDeletePostBtn').onclick = function() {
+            deletePostModal.style.display = 'none';
+        };
+        document.getElementById('confirmDeletePostBtn').onclick = function() {
+            if (currentDeletePostId) {
+                // Find the post and change its content to 'Post Deleted'
+                const postDiv = document.querySelector('.profile-feed-item[data-post-id="' + currentDeletePostId + '"] .post-content');
+                if (postDiv) {
+                    postDiv.textContent = 'Post Deleted';
+                }
+            }
+            deletePostModal.style.display = 'none';
+        };
+
+        // Edit Activity Modal logic
+        const editActivityModal = document.getElementById('editActivityModal');
+        const closeEditActivityModalBtn = document.getElementById('closeEditActivityModalBtn');
+        let currentEditActivityId = null;
+        document.querySelectorAll('.edit-activity-btn').forEach(btn => {
+            btn.onclick = function() {
+                const activityDiv = this.closest('.profile-feed-item');
+                currentEditActivityId = activityDiv ? activityDiv.getAttribute('data-activity-id').split('-')[0] : null;
+                // For now, just fill with dummy data from the DOM
+                document.getElementById('editActivityId').value = currentEditActivityId;
+                document.getElementById('editActivityForm').action = '/profile/edit_activity/' + currentEditActivityId;
+                document.getElementById('editActivityName').value = activityDiv.querySelector('p strong').textContent;
+                document.getElementById('editActivityType').value = activityDiv.querySelector('p:nth-of-type(2)').textContent.replace('Type: ', '');
+                document.getElementById('editSkillsReq').value = activityDiv.querySelector('p:nth-of-type(3)').textContent.replace('Skills Required: ', '');
+                document.getElementById('editActivityDate').value = activityDiv.querySelector('p:nth-of-type(4)').textContent.replace('Date: ', '');
+                document.getElementById('editActivityLocation').value = activityDiv.querySelector('p:nth-of-type(5)').textContent.replace('Location: ', '');
+                document.getElementById('editActivityMaxPax').value = activityDiv.querySelector('p:nth-of-type(6)').textContent.replace('Max Participants: ', '');
+                editActivityModal.style.display = 'block';
+            };
+        });
+        if (closeEditActivityModalBtn) {
+            closeEditActivityModalBtn.onclick = function() {
+                editActivityModal.style.display = 'none';
+            };
+        }
+        document.getElementById('editActivityForm').onsubmit = function(e) {
+            // Let the form submit normally (POST to /profile/edit_activity/<id>)
+        };
+
+        // Leave Activity Modal logic
+        const leaveActivityModal = document.getElementById('leaveActivityModal');
+        const closeLeaveActivityModalBtn = document.getElementById('closeLeaveActivityModalBtn');
+        let currentLeaveActivityId = null;
+        document.querySelectorAll('.leave-activity-btn').forEach(btn => {
+            btn.onclick = function() {
+                const activityDiv = this.closest('.profile-feed-item');
+                currentLeaveActivityId = activityDiv ? activityDiv.getAttribute('data-activity-id').split('-')[0] : null;
+                leaveActivityModal.style.display = 'block';
+            };
+        });
+        document.getElementById('confirmLeaveActivityBtn').onclick = function() {
+            if (currentLeaveActivityId) {
+                const form = document.getElementById('leaveActivityForm');
+                form.action = '/profile/leave_activity/' + currentLeaveActivityId;
+                form.submit();
+            }
+            leaveActivityModal.style.display = 'none';
+        };
+        document.getElementById('cancelLeaveActivityBtn').onclick = function() {
+            leaveActivityModal.style.display = 'none';
+        };
+        if (closeLeaveActivityModalBtn) {
+            closeLeaveActivityModalBtn.onclick = function() {
+                leaveActivityModal.style.display = 'none';
+            };
+        }
+
+        window.onload = function() {
+            if (window.location.hash === "#activitiesSection") {
+                showSection('activitiesSection', document.getElementById('activitiesTab'));
+            } else if (window.location.hash === "#feedSection") {
+                showSection('feedSection', document.getElementById('feedTab'));
+            }
+            if (document.querySelector('#flashModal .flash-message')) {
+                document.getElementById('flashModal').style.display = 'block';
+            }
+        };
+
+        // Profile Picture Modal Logic
+        function closeProfilePicModal() {
+            document.getElementById('profilePicModal').style.display = 'none';
+        }
+        document.getElementById('profilePicView').onclick = function() {
+            var modal = document.getElementById('profilePicModal');
+            var modalImg = document.getElementById('profilePicModalImg');
+            modalImg.src = this.src;
+            modal.style.display = 'flex';
+        };
+        document.getElementById('profilePicModal').onclick = function(e) {
+            if (e.target === this) closeProfilePicModal();
+        };
+        
+        // View List Modal Logic
+        const viewListModal = document.getElementById('viewListModal');
+        const closeViewListModalBtn = document.getElementById('closeViewListModalBtn');
+        let currentViewListActivityId = null;
+        document.querySelectorAll('.view-list-btn').forEach(btn => {
+            btn.onclick = function() {
+                currentViewListActivityId = this.getAttribute('data-activity-id');
+                fetchJoinedUsers(currentViewListActivityId);
+                viewListModal.style.display = 'block';
+            };
+        });
+        if (closeViewListModalBtn) {
+            closeViewListModalBtn.onclick = function() {
+                viewListModal.style.display = 'none';
+            };
+        }
+        function fetchJoinedUsers(activityId) {
+            const joinedUsersList = document.getElementById('joinedUsersList');
+            joinedUsersList.innerHTML = '<li>Loading...</li>';
+            fetch(`/profile/joined_users/${activityId}`)
+                .then(response => response.json())
+                .then(users => {
+                    if (users.length === 0) {
+                        joinedUsersList.innerHTML = '<li>No users have joined this activity yet.</li>';
+                    } else {
+                        joinedUsersList.innerHTML = users.map(user => `<li>${user}</li>`).join('');
+                    }
+                })
+                .catch(() => {
+                    joinedUsersList.innerHTML = '<li>Error loading users.</li>';
+                });
+        }
+        function closeFlashModal() {
+            document.getElementById('flashModal').style.display = 'none';
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <h1>Welcome to SIT Sports Buddy!</h1>
+                <p>Sign in to your account</p>
+            </div>
+            {% if error %}
+            <div class="error-message">{{ error }}</div>
+            {% endif %}
+            {% if success %}
+            <div class="success-message">{{ success }}</div>
+            {% endif %}
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            <form method="POST" action="{{ url_for('login.login') }}" class="login-form">
+            {{ form.hidden_tag() }}
+
+            <div class="form-group">
+                {{ form.email.label }}
+                {{ form.email(class="form-control", placeholder="Enter your email") }}
+                {% for err in form.email.errors %}
+                <div class="error-message">{{ err }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="form-group">
+                {{ form.password.label }}
+                {{ form.password(class="form-control", placeholder="Enter your password") }}
+                {% for err in form.password.errors %}
+                <div class="error-message">{{ err }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="form-options">
+                <a href="{{ url_for('login.reset_password_request') }}" class="forgot-password">Forgot password?</a>
+            </div>
+
+            {{ form.submit(class="login-btn") }}
+            </form>
+            <div class="login-footer">
+                <p>Don't have an account? <a href="{{ url_for('register.register') }}" class="signup-link">Sign up</a></p>
+            </div>
+        </div>
+    </div>
+    <script>
+      // Clear session timer on login page load
+      localStorage.removeItem('myapp_login_time');  // Clear session timer so that it resets next time user logs in
+    </script>
+</body>
+</html>

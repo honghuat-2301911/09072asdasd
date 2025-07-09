@@ -1,0 +1,18 @@
+# Ignore database volume
+mysql_data/
+
+# Ignore Python cache
+__pycache__/
+*.pyc
+*.py[cod]
+
+
+# Ignore environment/IDE files
+.env
+.vscode/
+
+# Ignore Docker logs (if generated)
+*.log
+
+# Ignore certbot files
+certbot/

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Error {{ error_code }}</title>
+    <style>
+        pre { background: #eee; padding: 10px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>Something went wrong</h1>
+    <h2>Error {{ error_code }}: {{ exception_type }}</h2>
+    <p>{{ error_message }}</p>
+    <h3>Traceback:</h3>
+    <pre>{{ traceback_info }}</pre>
+    <a href="javascript:history.back()">← Go back</a>
+</body>
+</html>

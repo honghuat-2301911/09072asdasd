@@ -1,0 +1,32 @@
+name: Format check using black,isort
+
+permissions:
+  contents: read
+  
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  Format-typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install black
+
+      # Use isort to check if imports are formatted properly
+      - name: Check import sorting with isort
+        uses: isort/isort-action@v1
+        with:
+          configuration: "--profile black --check-only --diff"
+
+      # Use Black to check the format of python codes
+      - name: Check code formatting with Black
+        run: black --check .

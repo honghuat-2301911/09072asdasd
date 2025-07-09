@@ -1,0 +1,42 @@
+name: Test Nginx
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  test-nginx:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Start Docker
+        run: docker compose up --build -d
+
+      - name: Wait for Nginx
+        run: sleep 5
+
+      - name: Validate Nginx Config
+        run: docker compose exec nginx nginx -t
+
+      - name: Test Status Codes
+        run: |
+          curl -s -o /dev/null -w "%{http_code}" http://localhost | grep 302
+          curl -s -o /dev/null -w "%{http_code}" http://localhost/login | grep 200
+          curl -s -o /dev/null -w "%{http_code}" http://localhost/nonexistent | grep 404
+
+      - name: Test Security Headers
+        run: |
+          curl -s -I http://localhost/login | grep "X-Frame-Options: DENY"
+
+      - name: Check Nginx Logs
+        run: docker compose logs nginx | grep -i "error" && exit 1 || exit 0
+
+      - name: Stop Docker
+        run: docker compose down -v

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bulletin Board</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/navbar.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/bulletin.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    window.sessionCreatedAt = "{{ session.get('created_at', '') }}";
+    window.sessionLastActivity = "{{ session.get('last_activity', '') }}";
+  </script>
+</head>
+<body>
+  {% include 'navbar.html' %}
+
+  <div id="flashModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <span class="close" onclick="closeFlashModal()">&times;</span>
+    {% with flash_messages = get_flashed_messages(with_categories=true) %}
+      {% if flash_messages %}
+        {% for category, message in flash_messages %}
+          <div class="flash-message {{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  </div>
+</div>
+
+
+  <div class="bulletin-container">
+    {% if error %}
+      <div class="error-message" style="color: black; text-align: center; margin-top: 20px;">
+        {{ error }}
+      </div>
+    {% elif query is not none %}
+      <div class="search-message" style="color: black; text-align: center; margin-top: 20px;">
+        {% if query %}
+          Showing results for "{{ query }}"
+        {% else %}
+          Showing all activities
+        {% endif %}
+      </div>
+    {% endif %}
+
+    <div class="search-bar" style="text-align: center; margin-bottom: 20px;">
+      <form method="post" action="{{ url_for('bulletin.bulletin_page') }}">
+        {{ search_form.csrf_token }}
+        <input
+          type="text"
+          name="query"
+          placeholder="Search activities..."
+          value="{{ search_form.query.data or '' }}"
+        >
+        <button type="submit">Search</button>
+        {% if search_form.query.errors %}
+          <div class="error-message">Invalid search input.</div>
+        {% endif %}
+      </form>
+    </div>
+
+    <div class="filter-bar" style="text-align: center; margin-bottom: 20px;">
+      <form method="post" action="{{ url_for('bulletin.filtered_bulletin') }}">
+        {{ filter_form.csrf_token }}
+        <label>
+          <input
+            type="checkbox"
+            name="sports_checkbox"
+            {% if filter_form.sports_checkbox.data %}checked{% endif %}
+          > Sports
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            name="non_sports_checkbox"
+            {% if filter_form.non_sports_checkbox.data %}checked{% endif %}
+          > Non Sports
+        </label>
+        <button type="submit">Filter</button>
+        {% if filter_form.errors %}
+          {% for error_list in filter_form.errors.values() %}
+            {% if loop.first %}
+              <div class="error-message">{{ error_list[0] }}</div>
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+      </form>
+    </div>
+
+    <div class="host-activity-container" style="text-align: center; margin-bottom: 20px;">
+      <button onclick="openHostModal()" class="bulletin-btn">Host Activity</button>
+    </div>
+
+    <div class="grid-container">
+      {% for b in bulletin_list %}
+        <div class="card" onclick="openModal('{{ loop.index0 }}')">
+          <h3>{{ b.activity_name }}</h3>
+        </div>
+        <div id="modal-data-{{ loop.index0 }}" data-activity-id="{{ b.id }}" style="display: none;">
+          <h2>{{ b.activity_name }}</h2>
+          <p><strong>Type:</strong> {{ b.activity_type }}</p>
+          <p><strong>Location:</strong> {{ b.location }}</p>
+          <p><strong>Date:</strong> {{ b.date }}</p>
+          <p><strong>Required Skills:</strong> {{ b.skills_req }}</p>
+          <p><strong>Max Participants:</strong> {{ b.max_pax }}</p>
+          <p><strong>Slots left:</strong> {{ b.count }}</p>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Global Join Modal -->
+  <div id="bulletinModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal()">&times;</span>
+      <div id="modalBody"></div>
+      <form id="joinForm" method="post" action="{{ url_for('bulletin.join_activity') }}">
+        {{ join_form.csrf_token }}
+        <input
+          type="hidden"
+          name="activity_id"
+          id="activityIdInput"
+          value="{{ join_form.activity_id.data or '' }}"
+        >
+        <button type="submit" class="bulletin-btn" style="margin-top: 20px;">Join</button>
+        {% if join_form.activity_id.errors %}
+          <div class="error-message">{{ join_form.activity_id.errors[0] }}</div>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+
+  <!-- Host Activity Modal -->
+  <div id="hostModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeHostModal()">&times;</span>
+      <h2>Host New Activity</h2>
+      <form method="post" action="{{ url_for('bulletin.host_activity') }}">
+        {{ host_form.csrf_token }}
+
+        <div>
+          <label for="activityNameInput">Activity Name:</label>
+          <input
+            type="text"
+            id="activityNameInput"
+            name="activity_name"
+            placeholder="Activity Name"
+            required
+            value="{{ host_form.activity_name.data or '' }}"
+          >
+          {% if host_form.activity_name.errors %}
+            <div class="error-message">{{ host_form.activity_name.errors[0] }}</div>
+          {% endif %}
+        </div>
+
+        <div>
+          <label for="activityTypeInput">Type:</label>
+          <select id="activityTypeInput" name="activity_type" required>
+            <option value="" disabled {% if not host_form.activity_type.data %}selected{% endif %}>
+              Select Activity Type
+            </option>
+            <option value="Sports" {% if host_form.activity_type.data=='Sports' %}selected{% endif %}>
+              Sports
+            </option>
+            <option value="Non Sports" {% if host_form.activity_type.data=='Non Sports' %}selected{% endif %}>
+              Non Sports
+            </option>
+          </select>
+          {% if host_form.activity_type.errors %}
+            <div class="error-message">{{ host_form.activity_type.errors[0] }}</div>
+          {% endif %}
+        </div>
+
+        <div>
+          <label for="skillsReqInput">Required Skills:</label>
+          <input
+            type="text"
+            id="skillsReqInput"
+            name="skills_req"
+            placeholder="Required Skills"
+            required
+            value="{{ host_form.skills_req.data or '' }}"
+          >
+          {% if host_form.skills_req.errors %}
+            <div class="error-message">{{ host_form.skills_req.errors[0] }}</div>
+          {% endif %}
+        </div>
+
+        <div>
+          <label for="dateInput">Date:</label>
+          <input
+            type="datetime-local"
+            id="dateInput"
+            name="date"
+            required
+            value="{{ host_form.date.data|datetimeformat if host_form.date.data else '' }}"
+            
+
+          >
+          {% if host_form.date.errors %}
+            <div class="error-message">{{ host_form.date.errors[0] }}</div>
+          {% endif %}
+        </div>
+
+        <div>
+          <label for="locationInput">Location:</label>
+          <input
+            type="text"
+            id="locationInput"
+            name="location"
+            placeholder="Location"
+            required
+            value="{{ host_form.location.data or '' }}"
+          >
+          {% if host_form.location.errors %}
+            <div class="error-message">{{ host_form.location.errors[0] }}</div>
+          {% endif %}
+        </div>
+
+        <div>
+          <label for="maxPaxInput">Max Participants:</label>
+          <input
+            type="number"
+            id="maxPaxInput"
+            name="max_pax"
+            min="1"
+            value="{{ host_form.max_pax.data or 1 }}"
+            required
+          >
+          {% if host_form.max_pax.errors %}
+            <div class="error-message">{{ host_form.max_pax.errors[0] }}</div>
+          {% endif %}
+        </div>
+
+        <button type="submit" class="bulletin-btn">Host</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function openModal(index) {
+      const data = document.getElementById(`modal-data-${index}`);
+      const modal = document.getElementById("bulletinModal");
+      const modalBody = document.getElementById("modalBody");
+      const activityIdInput = document.getElementById("activityIdInput");
+
+      modalBody.innerHTML = data.innerHTML;
+      activityIdInput.value = data.dataset.activityId;
+      modal.style.display = "block";
+    }
+
+    function closeModal() {
+      document.getElementById("bulletinModal").style.display = "none";
+    }
+
+    window.onclick = function(event) {
+      const modal = document.getElementById("bulletinModal");
+      if (event.target === modal) {
+        closeModal();
+      }
+    };
+
+    function openHostModal() {
+      document.getElementById("hostModal").style.display = "block";
+    }
+
+    function closeHostModal() {
+      document.getElementById("hostModal").style.display = "none";
+    }
+    window.onload = function () {
+      if (document.querySelector('#flashModal .flash-message')) {
+        document.getElementById('flashModal').style.display = 'block';
+      }
+    };
+    function closeFlashModal() {
+      document.getElementById('flashModal').style.display = 'none';
+    }
+  </script>
+</body>
+</html>

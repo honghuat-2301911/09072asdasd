@@ -1,0 +1,136 @@
+.navbar {
+  width: 100%;
+  background: #ff5858;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  height: 64px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  border-bottom: 1px solid white;
+  box-shadow: none;
+}
+
+body::before {
+  content: "";
+  display: block;
+  height: 64px; /* reserve navbar space */
+}
+
+.navbar-left {
+  display: flex;
+  align-items: center;
+}
+
+.logo {
+  height: 40px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.brand {
+  font-size: 1.2em;
+  color: white;
+  letter-spacing: 1px;
+}
+
+.navbar-links {
+  list-style: none;
+  display: flex;
+  gap: 200px;
+  margin: 0;
+  padding: 0;
+  justify-content: center;
+  align-items: center;
+  transition: max-height 0.3s ease;
+}
+
+.navbar-links li {
+  display: flex;
+  align-items: center;
+}
+
+.navbar-links a {
+  color: white;
+  text-decoration: none;
+  font-size: 1em;
+  padding: 8px 12px;
+  border-radius: 4px;
+  transition: background 0.2s, color 0.2s;
+}
+
+.navbar-links a:hover,
+.navbar-links a:focus {
+  background: whitesmoke;
+  color: #23272a;
+}
+
+.logout-btn {
+  color: white;
+  text-decoration: none;
+  font-size: 1em;
+  padding: 8px 12px;
+  border-radius: 4px;
+  transition: background 0.2s, color 0.2s;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: inline-block;
+}
+
+.logout-btn:hover,
+.logout-btn:focus {
+  background: whitesmoke;
+  color: #23272a;
+  text-decoration: none;
+}
+
+/* Hamburger icon for small screens */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  cursor: pointer;
+  gap: 4px;
+}
+
+.hamburger div {
+  width: 25px;
+  height: 3px;
+  background: white;
+  transition: 0.3s;
+}
+
+/* Mobile Styles */
+@media (max-width: 1080px) {
+  .navbar {
+    flex-wrap: wrap;
+    justify-content: space-between;
+    padding: 8px 16px;
+  }
+
+   .navbar-links {
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    overflow: hidden;
+    max-height: 0;
+    background: #ff5858;
+    position: absolute;
+    top: 64px;
+    left: 0;
+    z-index: 1001;
+  }
+
+  .navbar-links.show {
+    max-height: 500px;
+  }
+
+  .hamburger {
+    display: flex;
+  }
+}
