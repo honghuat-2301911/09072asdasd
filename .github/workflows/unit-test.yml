@@ -73,7 +73,7 @@ jobs:
 
       - name: Upload test artifacts (screenshots, HTML)
         if: failure()  # Only upload if the job fails
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: test-artifacts
           path: artifacts/

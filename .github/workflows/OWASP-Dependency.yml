@@ -25,7 +25,7 @@ jobs:
           out: "dependency-check-report"
 
       - name: Upload Report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: Dependency-Check-Report
           path: dependency-check-report
